@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>מספרה — קביעת תור</title>
+  <meta name="theme-color" content="#08090d" />
+  <meta name="description" content="קביעת תור לתספורת באונליין." />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="ambient-bg" aria-hidden="true">
+    <span class="orb orb-amber"></span>
+    <span class="orb orb-slate"></span>
+    <span class="orb orb-bronze"></span>
+  </div>
+
+  <div id="splash-screen" aria-hidden="true">
+    <div class="splash-logo-container">
+      <div class="laser-scan-line"></div>
+      <img src="icons/logo.png" alt="Logo" class="splash-logo" />
+    </div>
+  </div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img src="icons/logo.png" alt="לוגו מספרה" class="brand-logo" />
+        <h1>מספרה</h1>
+      </div>
+      <p>קביעת תור בכמה קליקים</p>
+    </header>
+
+    <main>
+      <div id="booking-view">
+        <section class="card">
+          <h2>1. בחרו תאריך</h2>
+          <div class="day-picker" id="day-picker"></div>
+        </section>
+
+        <section class="card" id="slots-section" hidden>
+          <h2>2. בחרו שעה</h2>
+          <div class="slots-grid" id="slots-grid"></div>
+          <p class="empty-state" id="slots-empty" hidden>אין שעות פנויות בתאריך זה.</p>
+        </section>
+      </div>
+
+      <section class="card" id="confirmation-section" hidden>
+        <div class="modal-icon">&#10003;</div>
+        <h2>התור נקבע בהצלחה</h2>
+        <p class="subtitle">נתראה בקרוב!</p>
+        <div id="confirm-details"></div>
+        <div class="action-buttons" id="confirm-actions" hidden>
+          <a class="btn bit-btn" id="bit-payment-btn" target="_blank" rel="noopener">💳 תשלום ב-Bit</a>
+          <a class="btn whatsapp-btn" id="whatsapp-reminder-btn" target="_blank" rel="noopener">📱 שמור תזכורת בוואטסאפ</a>
+        </div>
+        <button class="btn secondary" id="confirm-close-btn">חזור למסך הראשי</button>
+      </section>
+    </main>
+  </div>
+
+  <div class="overlay" id="booking-overlay" hidden>
+    <div class="modal">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <button type="button" class="modal-close" id="modal-close-btn" aria-label="סגירה">&times;</button>
+      <h2>פרטי ההזמנה</h2>
+      <p class="subtitle" id="booking-summary"></p>
+      <form id="booking-form">
+        <div class="field">
+          <label for="name-input">שם מלא</label>
+          <input type="text" id="name-input" name="customer_name" required autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="phone-input">טלפון</label>
+          <input type="tel" id="phone-input" name="phone" inputmode="tel" autocomplete="tel" />
+        </div>
+        <div class="field">
+          <label for="address-input">כתובת (אופציונלי)</label>
+          <input type="text" id="address-input" name="address" autocomplete="street-address" placeholder="כתובת (אופציונלי)" />
+        </div>
+        <button type="submit" class="btn" id="submit-btn">אישור תור</button>
+        <p class="error-text" id="form-error"></p>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/day-picker.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

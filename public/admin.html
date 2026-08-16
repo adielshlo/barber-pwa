@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>מספרה — ניהול</title>
+  <meta name="theme-color" content="#08090d" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="ambient-bg" aria-hidden="true">
+    <span class="orb orb-amber"></span>
+    <span class="orb orb-slate"></span>
+    <span class="orb orb-bronze"></span>
+  </div>
+
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-box">
+      <h1>כניסת מנהל</h1>
+      <form id="login-form">
+        <input
+          type="password"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          class="pin-input"
+          id="pin-input"
+          placeholder="••••"
+          autocomplete="off"
+          required
+        />
+        <button type="submit" class="btn" id="login-btn">כניסה</button>
+        <p class="error-text" id="login-error"></p>
+      </form>
+    </div>
+  </div>
+
+  <div class="app" id="admin-app" hidden>
+    <header class="topbar">
+      <div class="brand">
+        <img src="icons/logo.png" alt="לוגו מספרה" class="brand-logo" />
+        <h1>ניהול מספרה</h1>
+      </div>
+      <p><button class="logout-link" id="logout-btn">התנתקות</button></p>
+    </header>
+
+    <main>
+      <section class="card" id="dispatch-card">
+        <h2>תזכורות בוקר להיום (WhatsApp Dispatch)</h2>
+        <div id="dispatch-list"></div>
+        <p class="empty-state" id="dispatch-empty" hidden>אין תורים שנקבעו להיום 🎉</p>
+      </section>
+
+      <details class="card" id="automation-card">
+        <summary>חיבור לאוטומציה באייפון / אנדרואיד</summary>
+        <p class="hint">השתמשו בכתובת ה-API הבאה באוטומציה (Apple Shortcuts / Tasker וכו') כדי לקבל את תורי היום כ-JSON מוכן לשליחה.</p>
+        <div class="api-url-row">
+          <code class="api-url" id="dispatch-api-url"></code>
+          <button type="button" class="btn small secondary" id="copy-api-url-btn">📋 העתק כתובת API</button>
+        </div>
+      </details>
+
+      <section class="card">
+        <h2>בחרו תאריך לניהול</h2>
+        <div class="day-picker" id="day-picker"></div>
+        <button type="button" class="btn secondary" id="open-all-btn">פתח את כל שעות היום (09:00-18:00)</button>
+        <p class="error-text" id="manage-error"></p>
+      </section>
+
+      <section class="card">
+        <h2>שעות</h2>
+        <div class="slots-grid" id="hours-grid"></div>
+        <div class="legend">
+          <span><span class="legend-dot" style="background: var(--success);"></span>פתוח</span>
+          <span><span class="legend-dot" style="background: var(--closed);"></span>סגור</span>
+          <span><span class="legend-dot" style="background: var(--danger);"></span>תפוס</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>תורים ליום זה</h2>
+        <div id="appointments-list"></div>
+        <p class="empty-state" id="appointments-empty" hidden>אין תורים ליום זה.</p>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/day-picker.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
