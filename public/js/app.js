@@ -232,7 +232,6 @@
 
   function showConfirmation(appointment) {
     confirmDetails.innerHTML = '';
-    confirmDetails.appendChild(detailRow('שירות', 'תספורת'));
     confirmDetails.appendChild(detailRow('תאריך', DayPicker.formatDateFull(appointment.date)));
     confirmDetails.appendChild(detailRow('שעה', appointment.time_slot));
     confirmDetails.appendChild(detailRow('שם', appointment.customer_name));
@@ -355,6 +354,11 @@
       top.appendChild(time);
       top.appendChild(date);
       item.appendChild(top);
+
+      const sub = document.createElement('div');
+      sub.className = 'appt-sub';
+      sub.textContent = `על שם: ${appt.customer_name}`;
+      item.appendChild(sub);
 
       if (appt.date > todayIsrael) {
         const actions = document.createElement('div');
