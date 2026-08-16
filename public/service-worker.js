@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barber-cache-v16';
+const CACHE_NAME = 'barber-cache-v18';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -12,6 +12,7 @@ const STATIC_ASSETS = [
   '/icons/logo.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/icons/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (event) => {

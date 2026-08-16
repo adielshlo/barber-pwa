@@ -12,6 +12,7 @@
     "express": "^4.21.2"
   },
   "devDependencies": {
-    "playwright": "^1.62.1"
+    "playwright": "^1.62.1",
+    "sharp": "^0.35.3"
   }
 }
