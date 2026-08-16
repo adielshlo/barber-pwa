@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barber-cache-v11';
+const CACHE_NAME = 'barber-cache-v12';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -10,6 +10,8 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/icons/icon.svg',
   '/icons/logo.png',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
