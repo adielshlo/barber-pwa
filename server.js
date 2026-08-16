@@ -2,7 +2,7 @@ require('dotenv').config();
 const crypto = require('crypto');
 const path = require('path');
 const express = require('express');
-const db = require('./database');
+const { db, initDb } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -88,30 +88,33 @@ app.get('/api/config', (req, res) => {
 
 // GET /api/slots?date=YYYY-MM-DD
 // Returns open slots for the date that don't already have an active appointment.
-app.get('/api/slots', (req, res) => {
+app.get('/api/slots', async (req, res) => {
   const { date } = req.query;
   if (!date || !DATE_RE.test(date)) {
     return res.status(400).json({ error: 'Query param "date" is required in YYYY-MM-DD format' });
   }
 
-  const available = db
-    .prepare(
-      `SELECT o.time_slot FROM open_slots o
-       WHERE o.date = ?
-         AND NOT EXISTS (
-           SELECT 1 FROM appointments a
-           WHERE a.date = o.date AND a.time_slot = o.time_slot AND a.status != 'cancelled'
-         )
-       ORDER BY o.time_slot`
-    )
-    .all(date)
-    .map((row) => row.time_slot);
-
-  res.json({ date, available });
+  try {
+    const result = await db.execute({
+      sql: `SELECT o.time_slot FROM open_slots o
+            WHERE o.date = ?
+              AND NOT EXISTS (
+                SELECT 1 FROM appointments a
+                WHERE a.date = o.date AND a.time_slot = o.time_slot AND a.status != 'cancelled'
+              )
+            ORDER BY o.time_slot`,
+      args: [date],
+    });
+    const available = result.rows.map((row) => row.time_slot);
+    res.json({ date, available });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // POST /api/bookings
-app.post('/api/bookings', (req, res) => {
+app.post('/api/bookings', async (req, res) => {
   const { customer_name, phone, address, date, time_slot } = req.body || {};
 
   if (!customer_name || typeof customer_name !== 'string' || !customer_name.trim()) {
@@ -131,24 +134,29 @@ app.post('/api/bookings', (req, res) => {
     return res.status(400).json({ error: 'time_slot is required in HH:MM format' });
   }
 
-  const isOpen = db.prepare(`SELECT 1 FROM open_slots WHERE date = ? AND time_slot = ?`).get(date, time_slot);
-  if (!isOpen) {
-    return res.status(409).json({ error: 'This slot is not available' });
-  }
-
   try {
-    const result = db
-      .prepare(
-        `INSERT INTO appointments (customer_name, phone, address, date, time_slot, status)
-         VALUES (?, ?, ?, ?, ?, 'confirmed')`
-      )
-      .run(customer_name.trim(), sanitizedPhone, address ? String(address).trim() : null, date, time_slot);
+    const openResult = await db.execute({
+      sql: `SELECT 1 FROM open_slots WHERE date = ? AND time_slot = ?`,
+      args: [date, time_slot],
+    });
+    if (openResult.rows.length === 0) {
+      return res.status(409).json({ error: 'This slot is not available' });
+    }
 
-    const appointment = db.prepare(`SELECT * FROM appointments WHERE id = ?`).get(result.lastInsertRowid);
+    const insertResult = await db.execute({
+      sql: `INSERT INTO appointments (customer_name, phone, address, date, time_slot, status)
+            VALUES (?, ?, ?, ?, ?, 'confirmed')`,
+      args: [customer_name.trim(), sanitizedPhone, address ? String(address).trim() : null, date, time_slot],
+    });
 
-    res.status(201).json(appointment);
+    const appointmentResult = await db.execute({
+      sql: `SELECT * FROM appointments WHERE id = ?`,
+      args: [insertResult.lastInsertRowid],
+    });
+
+    res.status(201).json(appointmentResult.rows[0]);
   } catch (err) {
-    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.code === 'SQLITE_CONSTRAINT' || /UNIQUE constraint failed/.test(err.message || '')) {
       return res.status(409).json({ error: 'This slot has already been booked' });
     }
     console.error(err);
@@ -169,7 +177,7 @@ app.post('/api/admin/login', (req, res) => {
 
 // POST /api/admin/slots
 // Body: { date, time_slot } for a single slot, or { date, time_slots: [...] } for a batch.
-app.post('/api/admin/slots', requireAdmin, (req, res) => {
+app.post('/api/admin/slots', requireAdmin, async (req, res) => {
   const { date, time_slot, time_slots } = req.body || {};
 
   if (!date || !DATE_RE.test(date)) {
@@ -186,23 +194,31 @@ app.post('/api/admin/slots', requireAdmin, (req, res) => {
     }
   }
 
-  const insert = db.prepare(`INSERT OR IGNORE INTO open_slots (date, time_slot) VALUES (?, ?)`);
-  const insertMany = db.transaction((items) => {
-    for (const s of items) insert.run(date, s);
-  });
-  insertMany(slots);
+  try {
+    await db.batch(
+      slots.map((s) => ({
+        sql: `INSERT OR IGNORE INTO open_slots (date, time_slot) VALUES (?, ?)`,
+        args: [date, s],
+      })),
+      'write'
+    );
 
-  const open_slots = db
-    .prepare(`SELECT time_slot FROM open_slots WHERE date = ? ORDER BY time_slot`)
-    .all(date)
-    .map((row) => row.time_slot);
+    const result = await db.execute({
+      sql: `SELECT time_slot FROM open_slots WHERE date = ? ORDER BY time_slot`,
+      args: [date],
+    });
+    const open_slots = result.rows.map((row) => row.time_slot);
 
-  res.status(201).json({ date, open_slots });
+    res.status(201).json({ date, open_slots });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // DELETE /api/admin/slots
 // Body: { date, time_slot }. Rejects if the slot has an active appointment.
-app.delete('/api/admin/slots', requireAdmin, (req, res) => {
+app.delete('/api/admin/slots', requireAdmin, async (req, res) => {
   const { date, time_slot } = req.body || {};
 
   if (!date || !DATE_RE.test(date)) {
@@ -212,46 +228,62 @@ app.delete('/api/admin/slots', requireAdmin, (req, res) => {
     return res.status(400).json({ error: 'time_slot is required in HH:MM format' });
   }
 
-  const booked = db
-    .prepare(`SELECT 1 FROM appointments WHERE date = ? AND time_slot = ? AND status != 'cancelled'`)
-    .get(date, time_slot);
-  if (booked) {
-    return res.status(409).json({ error: 'This slot is booked and cannot be removed' });
-  }
+  try {
+    const bookedResult = await db.execute({
+      sql: `SELECT 1 FROM appointments WHERE date = ? AND time_slot = ? AND status != 'cancelled'`,
+      args: [date, time_slot],
+    });
+    if (bookedResult.rows.length > 0) {
+      return res.status(409).json({ error: 'This slot is booked and cannot be removed' });
+    }
 
-  const result = db.prepare(`DELETE FROM open_slots WHERE date = ? AND time_slot = ?`).run(date, time_slot);
-  if (result.changes === 0) {
-    return res.status(404).json({ error: 'Slot not found' });
-  }
+    const result = await db.execute({
+      sql: `DELETE FROM open_slots WHERE date = ? AND time_slot = ?`,
+      args: [date, time_slot],
+    });
+    if (Number(result.rowsAffected) === 0) {
+      return res.status(404).json({ error: 'Slot not found' });
+    }
 
-  res.json({ date, time_slot, removed: true });
+    res.json({ date, time_slot, removed: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // GET /api/admin/day-overview?date=YYYY-MM-DD
 // Returns open slots alongside booked customer details for that date.
-app.get('/api/admin/day-overview', requireAdmin, (req, res) => {
+app.get('/api/admin/day-overview', requireAdmin, async (req, res) => {
   const { date } = req.query;
   if (!date || !DATE_RE.test(date)) {
     return res.status(400).json({ error: 'Query param "date" is required in YYYY-MM-DD format' });
   }
 
-  const openSlots = db
-    .prepare(`SELECT time_slot FROM open_slots WHERE date = ? ORDER BY time_slot`)
-    .all(date)
-    .map((row) => row.time_slot);
+  try {
+    const [openSlotsResult, appointmentsResult] = await Promise.all([
+      db.execute({ sql: `SELECT time_slot FROM open_slots WHERE date = ? ORDER BY time_slot`, args: [date] }),
+      db.execute({
+        sql: `SELECT * FROM appointments WHERE date = ? AND status != 'cancelled' ORDER BY time_slot`,
+        args: [date],
+      }),
+    ]);
 
-  const appointments = db
-    .prepare(`SELECT * FROM appointments WHERE date = ? AND status != 'cancelled' ORDER BY time_slot`)
-    .all(date);
-  const bookedByTime = new Map(appointments.map((a) => [a.time_slot, a]));
+    const openSlots = openSlotsResult.rows.map((row) => row.time_slot);
+    const appointments = appointmentsResult.rows;
+    const bookedByTime = new Map(appointments.map((a) => [a.time_slot, a]));
 
-  const times = Array.from(new Set([...openSlots, ...bookedByTime.keys()])).sort();
-  const slots = times.map((time_slot) => {
-    const appointment = bookedByTime.get(time_slot) || null;
-    return { time_slot, status: appointment ? 'booked' : 'open', appointment };
-  });
+    const times = Array.from(new Set([...openSlots, ...bookedByTime.keys()])).sort();
+    const slots = times.map((time_slot) => {
+      const appointment = bookedByTime.get(time_slot) || null;
+      return { time_slot, status: appointment ? 'booked' : 'open', appointment };
+    });
 
-  res.json({ date, slots, appointments });
+    res.json({ date, slots, appointments });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // GET /api/admin/config
@@ -266,12 +298,20 @@ app.get('/api/admin/config', requireAdmin, (req, res) => {
 // Returns today's (Israel timezone) active appointments as ready-to-send
 // WhatsApp click-to-chat links, for the admin morning dispatch center and
 // for external mobile automations (Apple Shortcuts, etc.) via ADMIN_API_TOKEN.
-app.get('/api/admin/today-dispatch', requireAdminOrApiToken, (req, res) => {
+app.get('/api/admin/today-dispatch', requireAdminOrApiToken, async (req, res) => {
   const date = getIsraelTodayISO();
 
-  const appointments = db
-    .prepare(`SELECT * FROM appointments WHERE date = ? AND status != 'cancelled' ORDER BY time_slot`)
-    .all(date);
+  let appointments;
+  try {
+    const result = await db.execute({
+      sql: `SELECT * FROM appointments WHERE date = ? AND status != 'cancelled' ORDER BY time_slot`,
+      args: [date],
+    });
+    appointments = result.rows;
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 
   const dispatch = appointments.map((a) => {
     const cleanPhone = toWhatsappPhone(a.phone);
@@ -290,6 +330,13 @@ app.get('/api/admin/today-dispatch', requireAdminOrApiToken, (req, res) => {
   res.json({ count: dispatch.length, date, appointments: dispatch });
 });
 
-app.listen(PORT, () => {
-  console.log(`Barber PWA backend listening on port ${PORT}`);
-});
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Barber PWA backend listening on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
+  });
