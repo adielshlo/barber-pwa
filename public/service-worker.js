@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barber-cache-v14';
+const CACHE_NAME = 'barber-cache-v15';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
