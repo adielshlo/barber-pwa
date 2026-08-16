@@ -39,6 +39,11 @@
     </header>
 
     <main>
+      <nav class="view-tabs" id="view-tabs">
+        <button type="button" class="tab-btn active" data-view="booking">קביעת תור</button>
+        <button type="button" class="tab-btn" data-view="my-appointments">התורים שלי</button>
+      </nav>
+
       <div id="booking-view">
         <section class="card">
           <h2>1. בחרו תאריך</h2>
@@ -52,16 +57,31 @@
         </section>
       </div>
 
+      <div id="my-appointments-view" hidden>
+        <section class="card" id="phone-lookup-card">
+          <h2>הזינו מספר טלפון</h2>
+          <div class="field">
+            <label for="my-appointments-phone-input">טלפון</label>
+            <input type="tel" id="my-appointments-phone-input" inputmode="tel" autocomplete="tel" placeholder="0501234567" />
+          </div>
+          <button type="button" class="btn" id="my-appointments-search-btn">הצג את התורים שלי</button>
+          <p class="error-text" id="my-appointments-error"></p>
+        </section>
+
+        <section class="card" id="my-appointments-list-card" hidden>
+          <h2>התורים שלי</h2>
+          <div id="my-appointments-list"></div>
+          <p class="empty-state" id="my-appointments-empty" hidden>אין תורים פעילים.</p>
+          <button type="button" class="btn small secondary" id="change-phone-btn">שינוי מספר טלפון</button>
+        </section>
+      </div>
+
       <section class="card" id="confirmation-section" hidden>
         <div class="modal-icon">&#10003;</div>
         <h2>התור נקבע בהצלחה</h2>
         <p class="subtitle">נתראה בקרוב!</p>
         <div id="confirm-details"></div>
-        <div class="action-buttons" id="confirm-actions" hidden>
-          <a class="btn bit-btn" id="bit-payment-btn" target="_blank" rel="noopener">💳 תשלום ב-Bit</a>
-          <a class="btn whatsapp-btn" id="whatsapp-reminder-btn" target="_blank" rel="noopener">📱 שמור תזכורת בוואטסאפ</a>
-        </div>
-        <button class="btn secondary" id="confirm-close-btn">חזור למסך הראשי</button>
+        <button class="btn" id="confirm-close-btn">חזרה ללוח התורים</button>
       </section>
     </main>
   </div>

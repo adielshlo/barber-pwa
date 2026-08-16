@@ -199,6 +199,35 @@ main {
   gap: 1rem;
 }
 
+.view-tabs {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.3rem;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 0.6rem 0.5rem;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-bright) 100%);
+  color: var(--accent-contrast);
+  box-shadow: var(--shadow-gold);
+}
+
 .card {
   background: var(--surface);
   backdrop-filter: blur(16px);
@@ -796,23 +825,6 @@ input:focus {
   height: 9px;
   border-radius: 50%;
   margin-inline-end: 0.3rem;
-}
-
-/* Customer confirmation action buttons */
-.action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  margin: 1rem 0;
-}
-
-.btn.bit-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-  color: #071023;
-}
-
-.btn.bit-btn:hover {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.35);
 }
 
 .btn.whatsapp-btn {

@@ -49,6 +49,13 @@ function requireAdminOrApiToken(req, res, next) {
   return res.status(401).json({ error: 'Unauthorized' });
 }
 
+// Normalizes any phone input (dashes/spaces, with or without a +972/972
+// international prefix) down to the digits-only local form ('05XXXXXXXX')
+// that appointments.phone is stored as.
+function sanitizePhone(rawPhone) {
+  return String(rawPhone || '').replace(/\D/g, '').replace(/^972/, '0');
+}
+
 // Converts a local Israeli number ('050-1234567', '0501234567') or an
 // already-international one ('972501234567') into the digits-only
 // international form wa.me expects.
@@ -123,7 +130,7 @@ app.post('/api/bookings', async (req, res) => {
   if (!phone || typeof phone !== 'string') {
     return res.status(400).json({ error: 'phone is required' });
   }
-  const sanitizedPhone = phone.replace(/\D/g, '').replace(/^972/, '0');
+  const sanitizedPhone = sanitizePhone(phone);
   if (!PHONE_RE.test(sanitizedPhone)) {
     return res.status(400).json({ error: 'יש להזין מספר נייד תקין בן 10 ספרות (לדוגמה: 0501234567)' });
   }
@@ -159,6 +166,71 @@ app.post('/api/bookings', async (req, res) => {
     if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.code === 'SQLITE_CONSTRAINT' || /UNIQUE constraint failed/.test(err.message || '')) {
       return res.status(409).json({ error: 'This slot has already been booked' });
     }
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/my-appointments?phone=...
+// Returns the customer's own upcoming (today or later) active appointments,
+// sorted soonest first.
+app.get('/api/my-appointments', async (req, res) => {
+  const { phone } = req.query;
+  if (!phone || typeof phone !== 'string') {
+    return res.status(400).json({ error: 'Query param "phone" is required' });
+  }
+  const sanitizedPhone = sanitizePhone(phone);
+  if (!PHONE_RE.test(sanitizedPhone)) {
+    return res.status(400).json({ error: 'יש להזין מספר נייד תקין בן 10 ספרות (לדוגמה: 0501234567)' });
+  }
+
+  try {
+    const today = getIsraelTodayISO();
+    const result = await db.execute({
+      sql: `SELECT * FROM appointments
+            WHERE phone = ? AND status != 'cancelled' AND date >= ?
+            ORDER BY date ASC, time_slot ASC`,
+      args: [sanitizedPhone, today],
+    });
+    res.json({ appointments: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/appointments/:id/cancel
+// Body: { phone }. Only the customer who booked the appointment (matched by
+// normalized phone) can cancel it, and not on the day of the appointment
+// itself (or after).
+app.post('/api/appointments/:id/cancel', async (req, res) => {
+  const { id } = req.params;
+  const { phone } = req.body || {};
+
+  if (!phone || typeof phone !== 'string') {
+    return res.status(400).json({ error: 'phone is required' });
+  }
+  const sanitizedPhone = sanitizePhone(phone);
+
+  try {
+    const result = await db.execute({ sql: `SELECT * FROM appointments WHERE id = ?`, args: [id] });
+    const appointment = result.rows[0];
+
+    if (!appointment || appointment.status === 'cancelled') {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+    if (appointment.phone !== sanitizedPhone) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const todayIsrael = getIsraelTodayISO();
+    if (appointment.date <= todayIsrael) {
+      return res.status(400).json({ error: 'לא ניתן לבטל תור ביום התור עצמו. לביטול דחוף פנה ישירות לספר' });
+    }
+
+    await db.execute({ sql: `UPDATE appointments SET status = 'cancelled' WHERE id = ?`, args: [id] });
+    res.json({ success: true });
+  } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
