@@ -1,0 +1,28 @@
+{
+  "id": "/admin-app",
+  "name": "ניהול תורים - אחיה הספר",
+  "short_name": "ניהול תורים",
+  "description": "ניהול תורים למספרה.",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "/admin.html",
+  "scope": "/admin",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

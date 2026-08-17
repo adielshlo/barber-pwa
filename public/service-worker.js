@@ -1,4 +1,4 @@
-const CACHE_NAME = 'barber-cache-v18';
+const CACHE_NAME = 'barber-cache-v19';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -8,6 +8,7 @@ const STATIC_ASSETS = [
   '/js/app.js',
   '/js/admin.js',
   '/manifest.json',
+  '/admin-manifest.json',
   '/icons/icon.svg',
   '/icons/logo.png',
   '/icons/icon-192.png',
