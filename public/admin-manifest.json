@@ -6,7 +6,7 @@
   "lang": "he",
   "dir": "rtl",
   "start_url": "/admin.html",
-  "scope": "/admin",
+  "scope": "/admin.html",
   "display": "standalone",
   "background_color": "#111827",
   "theme_color": "#0f172a",
